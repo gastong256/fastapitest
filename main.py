@@ -2,9 +2,9 @@ import os
 #Python
 from typing import Optional
 #Pydantinc
-from pydantic import BaseModel, BaseSettings
+from pydantic import BaseModel,validator
 #FastAPI
-from fastapi import FastAPI, Body, Query, Path, Depends
+from fastapi import FastAPI, Depends
 from fastapi_cloudauth.cognito import Cognito, CognitoCurrentUser, CognitoClaims
 from config import Settings
 
@@ -23,20 +23,26 @@ class Person(BaseModel):
     age: int
     is_married: Optional[bool] = None
 
-print(auth)
-@app.get("/", dependencies=[Depends(auth.scope(["read"]))])
-def home():
-    return {"Hello": "World"}
-
-# Request
-
 class AccessUser(BaseModel):
     sub: str
     username: str
+    scope: str
+    @validator('scope')
+    def allowed_scopes(cls, v):
+        if 'email' not in v:
+            raise ValueError('Scope not allowed')
+        return v
+
+@app.get("/") 
+def home(current_user: AccessUser = Depends(auth.claim(AccessUser))):
+    return {"Hello": current_user.username}
+
+# Request
+
 @app.get("/access/")
 def secure_access(current_user: AccessUser = Depends(auth.claim(AccessUser))):
     # access token is valid and getting user info from access token
-    return f"Hello", {current_user.sub}, {current_user.username}
+    return {"sub":current_user.sub, "username":current_user.username, "scope":current_user.scope}
 
 get_current_user = CognitoCurrentUser(
     region=settings.REGION, 
