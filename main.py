@@ -50,7 +50,7 @@ def secure_user(current_user: CognitoClaims = Depends(get_current_user)):
 
 # use 'scope' mothod to validate cognito groups, in this example we are validating that the current jwt is in the group 'app1'
 # by default it validates that it belongs to all the groups in the list. 
-@app.get("/test/", dependencies=[Depends(auth.scope(["email"]))])
+@app.get("/test/", dependencies=[Depends(auth.scope(["app1"]))])
 def secure(current_user: AccessUser = Depends(auth.claim(AccessUser))):
     # access token is valid
     return f"Hello, {current_user.username}"
