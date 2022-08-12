@@ -1,11 +1,10 @@
-import os
-#Python
-from typing import Optional
 #Pydantinc
 from pydantic import BaseModel,validator
 #FastAPI
 from fastapi import FastAPI, Depends
+#fastapi_cloudauth
 from fastapi_cloudauth.cognito import Cognito, CognitoCurrentUser, CognitoClaims
+#config
 from config import Settings
 
 app = FastAPI()
@@ -17,12 +16,6 @@ auth = Cognito(
 )
 
 # Models
-class Person(BaseModel):
-    first_name: str
-    last_name: str
-    age: int
-    is_married: Optional[bool] = None
-
 class AccessUser(BaseModel):
     sub: str
     username: str
@@ -50,8 +43,14 @@ get_current_user = CognitoCurrentUser(
     client_id=settings.APPCLIENTID,
 )
 
-
 @app.get("/user/")
 def secure_user(current_user: CognitoClaims = Depends(get_current_user)):
     # ID token is valid and getting user info from ID token
+    return f"Hello, {current_user}"
+
+# use 'scope' mothod to validate cognito groups, in this example we are validating that the current jwt is in the group 'app1'
+# by default it validates that it belongs to all the groups in the list. 
+@app.get("/test/", dependencies=[Depends(auth.scope(["email"]))])
+def secure(current_user: AccessUser = Depends(auth.claim(AccessUser))):
+    # access token is valid
     return f"Hello, {current_user.username}"
